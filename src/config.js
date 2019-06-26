@@ -5,7 +5,8 @@ const dev = {
   },
   apiGateway: {
     REGION: "us-east-1",
-    URL: "https://api.skalbare.no/dev"
+    // URL: "https://api.skalbare.no/dev"
+    URL: "https://n4qiouubbc.execute-api.us-east-1.amazonaws.com/dev"
   },
   cognito: {
     REGION: "us-east-1",
@@ -22,7 +23,8 @@ const prod = {
   },
   apiGateway: {
     REGION: "us-east-1",
-    URL: "https://api.skalbare.no/prod"
+    // URL: "https://api.skalbare.no/prod"
+    URL: "https://k6ovp0eg21.execute-api.us-east-1.amazonaws.com/prod"
   },
   cognito: {
     REGION: "us-east-1",

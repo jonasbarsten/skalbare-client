@@ -1,0 +1,8 @@
+.RegisterProduct {
+  padding: 60px 0;
+}
+
+.RegisterProduct .buttonContainer {
+	margin: 0 auto;
+	max-width: 320px;
+}

@@ -5,6 +5,9 @@ import { BrowserRouter as Router } from "react-router-dom";
 import App from "./App";
 import * as serviceWorker from "./serviceWorker";
 import config from "./config";
+import 'bootstrap/dist/css/bootstrap.min.css';
+import "tabler-react/dist/Tabler.css";
+
 import "./index.css";
 
 Amplify.configure({
@@ -23,7 +26,7 @@ Amplify.configure({
   API: {
     endpoints: [
       {
-        name: "notes",
+        name: "skalbare",
         endpoint: config.apiGateway.URL,
         region: config.apiGateway.REGION
       },

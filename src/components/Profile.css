@@ -1,0 +1,11 @@
+.Profile {
+  padding: 0;
+}
+
+.Profile img {
+	max-height: 200px;
+}
+
+.Profile #bio {
+	min-width: 250px;
+}
