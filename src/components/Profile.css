@@ -1,5 +1,5 @@
 .Profile {
-  padding: 0;
+  padding: 10px 0;
 }
 
 .Profile img {
@@ -7,5 +7,5 @@
 }
 
 .Profile #bio {
-	min-width: 250px;
+	width: 100%;
 }

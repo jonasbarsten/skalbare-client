@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { API, Storage } from "aws-amplify";
+import { API, Storage, Auth } from "aws-amplify";
 import LoaderButton from "../components/LoaderButton";
 import { s3Upload } from "../libs/awsLib";
 import config from "../config";
@@ -12,42 +12,66 @@ export default class Profile extends Component {
     isLoading: null,
     isDeleting: null,
     profile: null,
-    bio: "Heihei",
+    bio: "",
     profileImageURL: null,
-    file: null
+    file: null,
+    userInfo: null
   };
-	// async componentDidMount() {
-	//   try {
-	//     let profileImageURL;
-	//     const profile = await this.getProfile();
-	//     const { bio, profileImage } = profile;
 
-	//     if (profileImage) {
-	//       profileImageURL = await Storage.vault.get(profileImage);
-	//     }
+	async componentDidMount () {
+	  try {
 
-	//     this.setState({
-	//       profile,
-	//       bio,
-	//       profileImageURL
-	//     });
-	//   } catch (e) {
-	//     alert(e);
-	//   }
-	// }
+	  	let profileImageURL;
+	  	const userInfo = await this.getUserInfo();
+	    let profile = await this.getProfile(userInfo.username);
 
-	// getProfile() {
- //    return API.get("skalbare", `/profiles/${this.props.match.params.id}`);
- //  }
+	    if (profile.error == "Item not found.") {
+	    	profile = await this.createProfile({
+	    	  profileId: userInfo.username,
+	    	  bio: "We are not rich by what we possess but by what we can do without.",
+	    	  profileImage: null
+	    	});
+	    };
 
- saveProfile(profile) {
-    return API.put("skalbare", `/profiles/${this.props.match.params.id}`, {
+	    const { bio, profileImage } = profile;
+
+	    if (profileImage) {
+	      profileImageURL = await Storage.vault.get(profileImage);
+	    }
+
+	    this.setState({
+	      profile,
+	      bio,
+	      profileImageURL,
+	      userInfo
+	    });
+	  } catch (e) {
+	  	console.log(e);
+	    alert(e);
+	  }
+	}
+
+	getUserInfo () {
+	  return Auth.currentUserInfo();
+	}
+
+	createProfile(profile) {
+    return API.post("skalbare", "/profiles", {
+      body: profile
+    });
+  }
+
+	getProfile (username) {
+    return API.get("skalbare", `/profiles/${username}`);
+  }
+
+ saveProfile (profile) {
+    return API.put("skalbare", `/profiles/${this.state.userInfo.username}`, {
       body: profile
     });
   }
 
 	profileImageClick () {
-		console.log('Hey');
 		this.refs.profileImage.click();
 	}
 
@@ -76,6 +100,8 @@ export default class Profile extends Component {
   	    profileImage = await s3Upload(this.state.file);
   	  }
 
+  	  const test = profileImage || this.state.profile.profileImage;
+
   	  await this.saveProfile({
   	    bio: this.state.bio,
   	    profileImage: profileImage || this.state.profile.profileImage
@@ -90,14 +116,14 @@ export default class Profile extends Component {
 
 	render() {
 
-		console.log(this.state);
+		const profileImageURL = this.state.profileImageURL || "cat.jpg";
 
 		return (
 			<div className="Profile">
 				<div className="row justify-content-center">
 				  <div className="col-auto">
 				    <img 
-				    	src="https://jonasbarsten.com/images/profile.jpg"
+				    	src={profileImageURL}
 				    	onClick={this.profileImageClick.bind(this)}
 				    />
 				    <input 
@@ -109,15 +135,20 @@ export default class Profile extends Component {
 				  </div>
 				</div>
 				<br />
-				<div className="row justify-content-center">
-				  <div className="col-auto">
+				<Row>
+					<Col>
+						<h4>Hvem er jeg?</h4>
+					</Col>
+				</Row>
+				<Row>
+				  <Col>
 			  	  <textarea
 			  	  	id="bio"
 			  	  	onChange={this.handleChange}
 			  	    value={this.state.bio}
 			  	  />
-				  </div>
-				</div>
+				  </Col>
+				</Row>
 				<LoaderButton
 					block
 					bsstyle="primary"
@@ -126,8 +157,8 @@ export default class Profile extends Component {
 					// disabled={!this.validateForm()}
 					// type="submit"
 					isLoading={this.state.isLoading}
-					text="Update"
-					loadingText="Saving…"
+					text="Lagre"
+					loadingText="Lagrer..."
 				/>
 			</div>
 		);

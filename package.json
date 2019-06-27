@@ -23,7 +23,7 @@
     "test": "react-scripts test --env=jsdom",
     "predeploy": "npm run build",
     "deploy": "aws s3 sync build/ s3://skalbare-client --delete",
-    "postdeploy": "aws cloudfront create-invalidation --distribution-id E1KTCKT9SOAHBW --paths '/*' && aws cloudfront create-invalidation --distribution-id E3MQXGQ47VCJB0 --paths '/*'",
+    "postdeploy": "aws cloudfront create-invalidation --distribution-id E2D4ZNVB4YZYFO --paths '/*'",
     "eject": "react-scripts eject"
   },
   "browserslist": [
