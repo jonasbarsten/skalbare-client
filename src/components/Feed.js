@@ -24,32 +24,30 @@ export default class Feed extends Component {
 
 		return (
 			<div className="Feed">
-				<Row>
-					<Col>
-						<h4>Si noe lurt</h4>
-					</Col>
-				</Row>
-				<Row>
-				  <Col>
-			  	  <textarea
-			  	  	id="postText"
-			  	  	onChange={this.handleChange}
-			  	    value={this.state.postText}
-			  	  />
-				  </Col>
-				</Row>
-				<LoaderButton
-					block
-					bsstyle="primary"
-					bssize="small"
-					onClick={this.addPost}
-					// disabled={!this.validateForm()}
-					// type="submit"
-					isLoading={this.state.isLoading}
-					text="Publisér"
-					loadingText="Publiserer..."
-				/>
-				<hr />
+				<div className="row">
+					<main className="col col-xl-6 order-xl-2 col-lg-12 order-lg-1 col-md-12 col-sm-12 col-12">
+						<div className="ui-block">
+							<div className="news-feed-form">
+								<div className="tab-content">
+									<div className="tab-pane active" id="home-1" role="tabpanel" aria-expanded="true">
+										<form>
+											<div className="author-thumb">
+												<img style={{width: "36px", height: "36px"}}src={this.props.profile && this.props.profile.profileImageURL} alt="author" />
+											</div>
+											<div className="form-group with-icon label-floating is-empty">
+												<label className="control-label">Hva tenker du på nå?</label>
+												<textarea className="form-control" placeholder=""></textarea>
+											</div>
+											<div className="add-options-message">
+												<button className="btn btn-primary btn-md-2">Publiser</button>
+											</div>
+										</form>
+									</div>
+								</div>
+							</div>
+						</div>
+					</main>
+				</div>
 			</div>
 		);
 	}

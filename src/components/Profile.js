@@ -1,72 +1,28 @@
 import React, { Component } from 'react';
-import { API, Storage, Auth } from "aws-amplify";
-import LoaderButton from "../components/LoaderButton";
-import { s3Upload } from "../libs/awsLib";
+import { API } from "aws-amplify";
+import { s3UploadProtected } from "../libs/awsLib";
 import config from "../config";
-import { Container, Row, Col, Button } from 'reactstrap';
+import { Button, Spinner, Modal, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
 
 import './Profile.css';
 
 export default class Profile extends Component {
   state = {
     isLoading: null,
-    isDeleting: null,
-    profile: null,
-    bio: "",
-    profileImageURL: null,
-    file: null,
-    userInfo: null
+    bio: this.props.profile && this.props.profile.bio,
+    profileImageFile: null,
+    profileCoverFile: null,
+    modal: false
   };
 
-	async componentDidMount () {
-	  try {
-
-	  	let profileImageURL;
-	  	const userInfo = await this.getUserInfo();
-	    let profile = await this.getProfile(userInfo.username);
-
-	    if (profile.error == "Item not found.") {
-	    	profile = await this.createProfile({
-	    	  profileId: userInfo.username,
-	    	  bio: "We are not rich by what we possess but by what we can do without.",
-	    	  profileImage: null
-	    	});
-	    };
-
-	    const { bio, profileImage } = profile;
-
-	    if (profileImage) {
-	      profileImageURL = await Storage.vault.get(profileImage);
-	    }
-
-	    this.setState({
-	      profile,
-	      bio,
-	      profileImageURL,
-	      userInfo
-	    });
-	  } catch (e) {
-	  	console.log(e);
-	    alert(e);
-	  }
+	toggle() {
+	  this.setState(prevState => ({
+	    modal: !prevState.modal
+	  }));
 	}
 
-	getUserInfo () {
-	  return Auth.currentUserInfo();
-	}
-
-	createProfile(profile) {
-    return API.post("skalbare", "/profiles", {
-      body: profile
-    });
-  }
-
-	getProfile (username) {
-    return API.get("skalbare", `/profiles/${username}`);
-  }
-
- saveProfile (profile) {
-    return API.put("skalbare", `/profiles/${this.state.userInfo.username}`, {
+ 	saveProfile (profile) {
+    return API.put("skalbare", `/profiles/${this.props.userInfo.username}`, {
       body: profile
     });
   }
@@ -75,38 +31,66 @@ export default class Profile extends Component {
 		this.refs.profileImage.click();
 	}
 
+	profileCoverClick () {
+		this.refs.profileCover.click();
+	}
+
+	async handleProfileImageFileChange (event) {
+    await this.setState({profileImageFile: event.target.files[0]});
+    this.updateProfile();
+  }
+
+  async handleProfileCoverFileChange (event) {
+    await this.setState({profileCoverFile: event.target.files[0]});
+    this.updateProfile();
+  }
+
 	handleChange = event => {
     this.setState({
       [event.target.id]: event.target.value
     });
   }
 
-	handleFileChange = event => {
-    this.state.file = event.target.files[0];
-  }
-
   updateProfile = async () => {
-  	let profileImage;
+  	let profileImage = this.props.profile.profileImage;
+  	let profileCover = this.props.profile.profileCover;
 
-  	if (this.state.file && this.state.file.size > config.MAX_ATTACHMENT_SIZE) {
+  	console.log(profileCover);
+
+  	this.setState({modal: false});
+
+  	if (this.state.profileImageFile && this.state.profileImageFile.size > config.MAX_ATTACHMENT_SIZE) {
   	  alert(`Please pick a file smaller than ${config.MAX_ATTACHMENT_SIZE/1000000} MB.`);
   	  return;
-  	}
+  	};
+
+  	if (this.state.profileCoverFile && this.state.profileCoverFile.size > config.MAX_ATTACHMENT_SIZE) {
+  	  alert(`Please pick a file smaller than ${config.MAX_ATTACHMENT_SIZE/1000000} MB.`);
+  	  return;
+  	};
 
   	this.setState({ isLoading: true });
 
   	try {
-  	  if (this.state.file) {
-  	    profileImage = await s3Upload(this.state.file);
+  	  if (this.state.profileImageFile) {
+  	    profileImage = await s3UploadProtected(this.state.profileImageFile);
+  	    this.setState({profileImageFile: null});
+  	  };
+
+  	  if (this.state.profileCoverFile) {
+  	    profileCover = await s3UploadProtected(this.state.profileCoverFile);
+  	    this.setState({profileCoverFile: null});
+  	  };
+
+  	  const newProfile = {
+  	  	bio: this.state.bio,
+  	  	profileImage: profileImage,
+  	  	profileCover: profileCover
   	  }
 
-  	  const test = profileImage || this.state.profile.profileImage;
+  	  await this.saveProfile(newProfile);
+  	  this.props.updateProfileState(newProfile);
 
-  	  await this.saveProfile({
-  	    bio: this.state.bio,
-  	    profileImage: profileImage || this.state.profile.profileImage
-  	  });
-  	  // this.props.history.push("/");
   	  this.setState({ isLoading: false });
   	} catch (e) {
   	  alert(e);
@@ -116,50 +100,101 @@ export default class Profile extends Component {
 
 	render() {
 
-		const profileImageURL = this.state.profileImageURL || "cat.jpg";
+		const email = this.props.userInfo && this.props.userInfo.attributes && this.props.userInfo.attributes.email;
+		const profileImageURL = this.props.profile && this.props.profile.profileImageURL;
+		const profileCoverURL = this.props.profile && this.props.profile.profileCoverURL;
+
+		if (this.state.isLoading) {
+			return (
+				<div 
+					className="row justify-content-center"
+					style={{marginTop: "40px"}}
+				>
+					<div className="col-auto">
+						<Spinner type="grow" color="dark" />
+					</div>
+				</div>
+			);
+		}
 
 		return (
 			<div className="Profile">
-				<div className="row justify-content-center">
-				  <div className="col-auto">
-				    <img 
-				    	src={profileImageURL}
-				    	onClick={this.profileImageClick.bind(this)}
-				    />
-				    <input 
-				    	type="file"
-				    	ref="profileImage"
-				    	style={{display: "none"}}
-				    	onChange={this.handleFileChange}
-				    />
-				  </div>
+				<div className="row">
+					<div className="col col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+						<div className="ui-block">
+							<div className="top-header">
+								<div className="top-header-thumb profile-cover-wrapper" onClick={this.profileCoverClick.bind(this)}>
+									<img style={{width: "1920px", height: "640px"}} src={profileCoverURL} />
+									<div className="cover-overlay">Endre</div>
+									<input 
+										type="file"
+										ref="profileCover"
+										style={{display: "none"}}
+										onChange={this.handleProfileCoverFileChange.bind(this)}
+									/>
+								</div>
+								<div className="profile-section"></div>
+								<div className="top-header-author">
+									<div className="author-thumb profile-image-wrapper" onClick={this.profileImageClick.bind(this)}>
+										<img style={{width: "124px", height: "124px"}} src={profileImageURL} />
+										<div className="image-overlay">Endre</div>
+										<input 
+											type="file"
+											ref="profileImage"
+											style={{display: "none"}}
+											onChange={this.handleProfileImageFileChange.bind(this)}
+										/>
+									</div>
+									<div className="author-content">
+										<a href="02-ProfilePage.html" className="h4 author-name">{email}</a>
+										<div className="country">Personlig assistent</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
 				</div>
-				<br />
-				<Row>
-					<Col>
-						<h4>Hvem er jeg?</h4>
-					</Col>
-				</Row>
-				<Row>
-				  <Col>
-			  	  <textarea
-			  	  	id="bio"
-			  	  	onChange={this.handleChange}
-			  	    value={this.state.bio}
-			  	  />
-				  </Col>
-				</Row>
-				<LoaderButton
-					block
-					bsstyle="primary"
-					bssize="large"
-					onClick={this.updateProfile}
-					// disabled={!this.validateForm()}
-					// type="submit"
-					isLoading={this.state.isLoading}
-					text="Lagre"
-					loadingText="Lagrer..."
-				/>
+
+				<div className="row">
+					<div className="col col-xl-12 col-lg-12 col-md-12 col-sm-12 col-12">
+						<div className="ui-block">
+							<div className="row">
+								<div className="ui-block-title">
+									<div className="col">
+										<h6 className="title">Bio:</h6>
+									</div>
+									<div className="col">
+										<Button onClick={this.toggle.bind(this)}>Rediger</Button>
+									</div>
+								</div>
+							</div>
+							<div className="ui-block-content">
+								<div className="row">
+									<div className="col col-lg-12 col-md-12 col-sm-12 col-12">
+										<span className="text">{this.state.bio}</span>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<Modal isOpen={this.state.modal} toggle={this.toggle.bind(this)}>
+	        <ModalHeader toggle={this.toggle}>Rediger bio:</ModalHeader>
+	        <ModalBody>
+	        	<textarea
+	        		id="bio"
+	        		onChange={this.handleChange}
+	        		value={this.state.bio}
+	        		style={{width: "100%"}}
+	        	/>
+	        </ModalBody>
+	        <ModalFooter>
+	          <Button color="primary" onClick={this.updateProfile}>Lagre</Button>{' '}
+	          <Button color="secondary" onClick={this.toggle.bind(this)}>Avbryt</Button>
+	        </ModalFooter>
+	      </Modal>
+
 			</div>
 		);
 	}
